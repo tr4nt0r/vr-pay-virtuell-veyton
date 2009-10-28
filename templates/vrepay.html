@@ -1,0 +1,46 @@
+<table class="paymentblock" width="100%" border="0" cellspacing="0" cellpadding="6">
+  <tr>
+		  	{if $payment_hidden == true}
+		  		{form type=hidden name=selected_payment value=$payment_code}
+		  	{else}			
+			  	{if $payment_code==$payment_selected}
+			  	<td class="header" width="10px">{form type=radio name=selected_payment value=$payment_code checked=true}</td>
+			  	{else}
+			  	<td class="header" width="10px">{form type=radio name=selected_payment value=$payment_code}</td>
+			  	{/if}
+			{/if}   
+			
+    <td class="header"><strong><label for="{$payment_code}">{$payment_name}</label></strong></td>
+    {if $payment_icon}
+    <td class="header"><strong>{$payment_icon}</strong></td>
+    {/if}
+    <td class="header" align="right">{$payment_price.formated}</td>
+  </tr>
+  <tr>
+    <td colspan="4" class="main">{$payment_desc}</td>
+  </tr>  	    
+
+  <tr>
+    <td colspan class="main">{txt key=TEXT_VREPAY_CCOWNER}</td>
+    <td colspan="2" class="main">{form type=text name=vr_ccowner value=$vr_ccowner}</td>
+  </tr>
+
+  <tr>
+    <td colspan class="main">{txt key=TEXT_VREPAY_CCNO}</td>
+    <td colspan="2" class="main">
+    {form type=text name=vr_ccno value=$vr_ccno}
+    </td>
+  </tr>
+
+  <tr>
+    <td colspan class="main">{txt key=TEXT_VREPAY_EXPIRES}</td>
+    <td colspan="2" class="main">{form type=select name=vr_mto value=$vr_mto_list default=$vr_mto}&nbsp;{form type=select name=vr_yto value=$vr_yto_list default=$vr_yto}</td>
+  </tr>
+
+  <tr>
+    <td colspan class="main">{txt key=TEXT_VREPAY_CVC2}</td>
+    <td colspan="2" class="main">{form type=text name=vr_cvc2 value=$vr_cvc2 params='maxlength="4" style="width:50px;"'}</td>
+  </tr>
+
+</table>
+<br />
