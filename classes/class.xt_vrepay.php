@@ -1,4 +1,14 @@
 <?php
+/**
+ * 
+ * @package xt_vrepay 
+ * @access public
+ * 
+ * @author Manfred Dennerlein Rodelo <manni@zapto.de>
+ * @copyright Copyright (c) 2009, Manfred Dennerlein Rodelo
+ * 
+ * @version $Id$
+ */
 
 defined('_VALID_CALL') or die('Direct Access is not allowed.');
 
@@ -11,6 +21,9 @@ class xt_vrepay {
 	public $post_form = false;
 	public $iframe = false;
 	public $data = array();
+	
+	private $target_url_live = 'https://pay.vr-epay.de/pbr/transaktion';
+	private $target_url_test = 'https://payinte.vr-epay.de/pbr/transaktion';
 	
 	public function xt_vrepay() {
 
@@ -27,14 +40,13 @@ class xt_vrepay {
 		}
 		$this->data['vr_mto_list'] = $this->getMonthToList_data();
 		$this->data['vr_yto_list'] = $this->getYearToList_data();
-
 	}
 	
 	
 	
 function build_payment_info($data){
 
-    $tmp_data = $data;
+    //$tmp_data = $data;
 
     // Keine Konstante im Checkout.
    /* unset($tmp_data['customer_id']);
@@ -50,13 +62,20 @@ function build_payment_info($data){
     unset($tmp_data['x']);
     unset($tmp_data['y']);
 */
-    while (list ($key, $value) = each($tmp_data)) {
-      $text = constant('TEXT_'.strtoupper($key));
-      if($key == 'vr_ccno') $value =  substr($value, 0, 4).str_repeat('X', (strlen($value) - 8)) .substr($value, -4);
+   /* while (list ($key, $value) = each($tmp_data)) {
+      $text = constant('TEXT_VREPAY_'.strtoupper(str_replace('vr_','',$key)));
+      //if($key == 'vr_ccno') $value =  substr($value, 0, 4).str_repeat('X', (strlen($value) - 8)) .substr($value, -4);
       $new_data .= $text.': '.$value.'<br />';
-    }
+    }*/
+    
+    $payment_info = '';    
+    $payment_info .= TEXT_VREPAY_CCOWNER . ': ' . $data['vr_ccowner'] . '<br />';
+    $payment_info .= TEXT_VREPAY_CCNO . ': ' .  substr($data['vr_ccno'], 0, 4).str_repeat('X', (strlen($data['vr_ccno']) - 8)) .substr($data['vr_ccno'], -4) . '<br />';
+    $payment_info .= TEXT_VREPAY_EXPIRES . ': ' . strftime('%B %Y', mktime(0, 0, 0, $data['vr_mto'], 1, $data['vr_yto'] )) . '<br />';
+    $payment_info .= TEXT_VREPAY_CVC2 . ': ' . $data['vr_cvc2'];
+    
 
-    return $new_data;
+    return $payment_info;
 
   }
 	
@@ -73,7 +92,7 @@ function build_payment_info($data){
 	private function getYearToList_data() {
 		$today = getdate();
 		$expires_year = array();
-		for ($i = $today['year']; $i < $today['year'] + 10; $i ++) {
+		for ($i = $today['year']; $i <= $today['year'] + 10; $i ++) {
 			$expires_year[] = array ('id' => strftime('%Y', mktime(0, 0, 0, 1, 1, $i)), 'text' => strftime('%Y', mktime(0, 0, 0, 1, 1, $i)));
 		}
 		
@@ -88,15 +107,14 @@ function build_payment_info($data){
 	//TODO: Validierung Owner
 	public function _vrepayValidation($data) {
 		global $xtPlugin, $info;
-
+	
 		($plugin_code = $xtPlugin->PluginCode('class.xt_vrepay.php:_vrepayValidation_top')) ? eval($plugin_code) : false;
 		if(isset($plugin_return_value))
 		return $plugin_return_value;
 
 		// check cardtype
 		if ( ereg('^4([0-9]){12,18}$', $data['vr_ccno'])) {		
-			$data['vr_ccbrand'] = 'VISA';
-			echo XT_VREPAY_HAENDLERNR;
+			$data['vr_ccbrand'] = 'VISA';		
 			if(XT_VREPAY_ACTIVATE_VISA != 'true') {
 				$error['vr_ccbrand'] = 'true';
 				$info->_addInfo(ERROR_CHECK_VREPAY_BRAND_VISA_UNSUPPORTED);
@@ -165,45 +183,170 @@ function build_payment_info($data){
 	
 	
 	function _vrepayProcessPayment($oID, $data) {
-		global $order;
-		print_r($order);
+		global $order, $store_handler,$xtLink, $info;
+		//print_r($order);
 		//print_r($data);
 		//die();
 		
-		_VREPAY_SERVICENAME;
-		$verwendung1 = substr($data['vr_ccowner'], 0, 25);
-		$verwendung2 = substr(MODULE_PAYMENT_VREPAY_DIREKT_CC_VERWENDUNG2, 0, 25);
 		
-		$waehrung = $order->order_data['currency_code'];
+		$post_data = array();
+		
+		//Allgemeine Parameter
+		$post_data['HAENDLERNR']	= XT_VREPAY_HAENDLERNR;
+		$post_data['TSATYP']		= 'ECOM';
+		
+		//Bestelldaten
+		$post_data['REFERENZNR']	= substr(XT_VREPAY_ORDERPREFIX. $store_handler->shop_id . '-' .$oID, -20);
+		$currency = new currency($order->order_data['currency_code']);		
+		$post_data['BETRAG']			= $order->order_total['total']['plain'] * pow(10, $currency->decimals);		
+		$post_data['WAEHRUNG']		= $order->order_data['currency_code'];
+		$post_data['INFOTEXT']		= '';
+		$post_data['ARTIKELANZ']	= count($order->order_products);
+		
+		//Warenkorb
 		
 		
-		// collect http-postdata
-		$post = array(
-			'HAENDLERNR'		=> $this->haendlernr,
-			'REFERENZNR'		=> MODULE_PAYMENT_VREPAY_DIREKT_CC_ORDERPREFIX . $this->referenznr,
-			'BETRAG'			=> $this->betrag,
-			'ARTIKELANZ'		=> '0',
-			'BRAND'				=> $data['cc_brand'],
-			'KARTENNR' 			=> $data['vr_ccno'],
-			'GUELTIGKEITSJAHR' 	=> substr($data['vr_yto'], 2, 2),
-			'GUELTIGKEITSMONAT' => $data['vr_mto'],
-			'CVC2' 				=> $data['vr_cvc2'],
-			
-			
-			
-			'WAEHRUNG'			=> $order->order_data['currency_code'],
-			'ZAHLART'			=> $this->zahlart,
-			'SERVICENAME'		=> 'DIREKT',
-			'ANTWGEHEIMNIS'		=> $this->md5,
-			// some defines...
-			'ARTIKELANZ'		=> count($order->order_products),
-			'BENACHRPROF'		=> "KEI",
-			'TSATYP'			=> $this->tsatyp,
-			'VERWENDANZ'		=> "0",
-		);
+		for($i = 0; $i < count($order->order_products); $i++) {
+			$post_data['ARTIKELNR' . ($i+1)] = $order->order_products[$i]['products_model'];
+			$post_data['ARTIKELBEZ' . ($i+1)] = utf8_decode($order->order_products[$i]['products_name']);
+			$post_data['ANZAHL' . ($i+1)] = (int)$order->order_products[$i]['products_quantity'];
+			$post_data['EINZELPREIS' . ($i+1)] = $order->order_products[$i]['products_price']['plain'] * pow(10, $currency->decimals);
+		}
 
-		print_r($post);
-		die();
+		//Transaktion
+		$post_data['ZAHLART'] 		= XT_VREPAY_ZAHLART;
+		$post_data['SERVICENAME'] 		= 'DIREKT';
+		
+		$post_data['KARTENNR'] 			= $data['vr_ccno'];
+		$post_data['GUELTIGKEITSMONAT']	= $data['vr_mto'];
+		$post_data['GUELTIGKEITSJAHR'] 	= strftime('%y', mktime(0, 0, 0, 1, 1, $data['vr_yto']));
+		$post_data['CVC2'] 				= $data['vr_cvc2'];
+		
+		$post_data['BRAND']				= $data['vr_ccbrand'];
+		
+		
+		
+		
+		
+		
+		$post_data['VERWENDUNG1'] = utf8_decode(substr($data['vr_ccowner'], 0, 25));
+		if(XT_VREPAY_VERWENDUNG2 != '') {
+			$post_data['VERWENDUNG2'] = utf8_decode(substr(XT_VREPAY_VERWENDUNG2, 0, 25));
+			$post_data['VERWENDANZ'] = 2;
+		} else {
+			$post_data['VERWENDANZ'] = 1;	
+		}
+
+		// cURL init & options
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, (XT_VREPAY_SYSTEM == 'LIVE') ? $this->target_url_live : $this->target_url_test);
+		curl_setopt($ch, CURLOPT_USERPWD, XT_VREPAY_HAENDLERNR . ':' . XT_VREPAY_PASSWORT);
+		curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+		
+		curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post_data));
+		curl_setopt($ch, CURLOPT_POST, true);
+		curl_setopt($ch, CURLOPT_SSLVERSION, 3);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($ch, CURLOPT_HEADER, true);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+		// cURL execute request
+		$response = curl_exec($ch);
+
+		if ($response === false) {
+
+			$err05 = MODULE_PAYMENT_VREPAY_DIREKT_CC_TEXT_ERR05 ." [". curl_error($ch) ."]";
+
+
+			// close cURL handler
+			curl_close($ch);
+
+			$info->_addInfoSession(ERROR_CHECK_VREPAY_SYSTEM_UNAVAILABLE);
+			$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
+			if(XT_VREPAY_CANCELED) {
+				$order->_updateOrderStatus(XT_VREPAY_CANCELED, 'Status:'.  curl_error($ch), false, false, 'payment');
+			}
+			unset($_SESSION['last_order_id']);
+			$xtLink->_redirect($tmp_link);
+				
+
+				
+		} else {
+			$headers = curl_getinfo($ch);
+			curl_close($ch);
+
+			switch ($headers['http_code']) {
+				case '200':
+					//print_r($headers);
+					parse_str(substr($response,  $headers['header_size']), $response_body);
+					//echo substr($response,  $headers['header_size']);
+
+					if(isset($response_body['STATUS'])) {
+						switch ( $response_body['STATUS'] ) {
+							case "RESERVIERT":
+									
+								if(XT_VREPAY_PROCESSED) {
+									$order->_updateOrderStatus(XT_VREPAY_PROCESSED, $response_body['STATUS'] . ': ' .$response_body['RMSG'], false, false, 'payment', $response_body['TSAID']);
+								}
+								unset($_SESSION['xt_vrepay_data']);
+								break;
+							case "GEKAUFT":
+									
+								if(XT_VREPAY_PROCESSED) {
+									$order->_updateOrderStatus(XT_VREPAY_PROCESSED, $response_body['STATUS'] . ': ' .$response_body['RMSG'], false, false, 'payment', $response_body['TSAID']);
+								}
+									unset($_SESSION['xt_vrepay_data']);
+								break;
+							case "ABGELEHNT":
+								//Zahlung abgelehnt
+								$info->_addInfoSession(utf8_encode($response_body['RMSG']));
+								$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
+								if(XT_VREPAY_CANCELED) {
+									$order->_updateOrderStatus(XT_VREPAY_CANCELED, $response_body['STATUS'] . ': ' .$response_body['RMSG'], false, false, 'payment');
+								}
+								unset($_SESSION['last_order_id']);
+								$xtLink->_redirect($tmp_link);
+								break;
+
+							default:
+								//Systemfehler
+								$info->_addInfoSession(ERROR_CHECK_VREPAY_SYSTEM_UNAVAILABLE);
+								$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
+								if(XT_VREPAY_CANCELED) {
+									$order->_updateOrderStatus(XT_VREPAY_CANCELED, $response_body['STATUS'] . ' ' . $response_body['RMSG'], false, false, 'payment');
+								}
+								unset($_SESSION['last_order_id']);
+								$xtLink->_redirect($tmp_link);
+
+								break;
+						}
+					} else {
+						//Systemfehler
+						$info->_addInfoSession(ERROR_CHECK_VREPAY_SYSTEM_UNAVAILABLE . utf8_encode($response_body['FEHLERTEXT']));
+						$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
+						if(XT_VREPAY_CANCELED) {
+							$order->_updateOrderStatus(XT_VREPAY_CANCELED, $response_body['FEHLERTEXT'], false, false, 'payment');
+						}
+						unset($_SESSION['last_order_id']);
+						$xtLink->_redirect($tmp_link);
+
+					}
+
+					break;
+				default:
+					
+					$info->_addInfoSession(ERROR_CHECK_VREPAY_SYSTEM_UNAVAILABLE);
+					$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
+					if(XT_VREPAY_CANCELED) {
+								$order->_updateOrderStatus(XT_VREPAY_CANCELED, 'http-code ['. $headers['http_code'].']' , false, false, 'payment');
+							}
+					unset($_SESSION['last_order_id']);
+					$xtLink->_redirect($tmp_link);
+					break;
+			}			
+		}	
 	}
 	
 	
