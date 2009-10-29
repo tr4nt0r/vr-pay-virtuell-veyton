@@ -25,9 +25,13 @@ class xt_vrepay {
 	private $target_url_live = 'https://pay.vr-epay.de/pbr/transaktion';
 	private $target_url_test = 'https://payinte.vr-epay.de/pbr/transaktion';
 	
+	/**
+	 * Constructor
+	 * @return void
+	 */
 	public function xt_vrepay() {
 
-		if(is_data($_SESSION['xt_vrepay_data'])){			
+		if(is_data($_SESSION['xt_vrepay_data'])){
 			$this->data['payment_info'] = $this->build_payment_info($_SESSION['xt_vrepay_data']);
 			$tmp_data = $_SESSION['xt_vrepay_data'];
 
@@ -41,46 +45,31 @@ class xt_vrepay {
 		$this->data['vr_mto_list'] = $this->getMonthToList_data();
 		$this->data['vr_yto_list'] = $this->getYearToList_data();
 	}
-	
-	
-	
-function build_payment_info($data){
 
-    //$tmp_data = $data;
+	
+	/**
+	 * Kartendaten für Bestellübersicht formatieren
+	 * @param array $data
+	 * @return string
+	 */
+	private function build_payment_info($data){
 
-    // Keine Konstante im Checkout.
-   /* unset($tmp_data['customer_id']);
-    unset($tmp_data['banktransfer_save']);
-    unset($tmp_data['banktransfer_country_code']);
-    unset($tmp_data['banktransfer_amount']);
-    unset($tmp_data['banktransfer_trxamount']);
-    unset($tmp_data['banktransfer_currency']);
+		$payment_info = '';
+		$payment_info .= TEXT_VREPAY_CCOWNER . ': ' . $data['vr_ccowner'] . '<br />';
+		$payment_info .= TEXT_VREPAY_CCNO . ': ' .  substr($data['vr_ccno'], 0, 4).str_repeat('X', (strlen($data['vr_ccno']) - 8)) .substr($data['vr_ccno'], -4) . '<br />';
+		$payment_info .= TEXT_VREPAY_EXPIRES . ': ' . strftime('%B %Y', mktime(0, 0, 0, $data['vr_mto'], 1, $data['vr_yto'] )) . '<br />';
+		$payment_info .= TEXT_VREPAY_CVC2 . ': ' . $data['vr_cvc2'];
 
-    // Keine Konstante Konto bearbeiten.
-    unset($tmp_data['action']);
-    unset($tmp_data['account_id']);
-    unset($tmp_data['x']);
-    unset($tmp_data['y']);
-*/
-   /* while (list ($key, $value) = each($tmp_data)) {
-      $text = constant('TEXT_VREPAY_'.strtoupper(str_replace('vr_','',$key)));
-      //if($key == 'vr_ccno') $value =  substr($value, 0, 4).str_repeat('X', (strlen($value) - 8)) .substr($value, -4);
-      $new_data .= $text.': '.$value.'<br />';
-    }*/
-    
-    $payment_info = '';    
-    $payment_info .= TEXT_VREPAY_CCOWNER . ': ' . $data['vr_ccowner'] . '<br />';
-    $payment_info .= TEXT_VREPAY_CCNO . ': ' .  substr($data['vr_ccno'], 0, 4).str_repeat('X', (strlen($data['vr_ccno']) - 8)) .substr($data['vr_ccno'], -4) . '<br />';
-    $payment_info .= TEXT_VREPAY_EXPIRES . ': ' . strftime('%B %Y', mktime(0, 0, 0, $data['vr_mto'], 1, $data['vr_yto'] )) . '<br />';
-    $payment_info .= TEXT_VREPAY_CVC2 . ': ' . $data['vr_cvc2'];
-    
 
-    return $payment_info;
+		return $payment_info;
 
-  }
+	}
 	
 	
-	
+	/**
+	 * Daten für Monats-Dropdown
+	 * @return array
+	 */
 	private function getMonthToList_data() {
 		$expires_month = array();
 		for ($i = 1; $i <= 12; $i++) {
@@ -88,7 +77,10 @@ function build_payment_info($data){
 		}
 		return $expires_month;
 	}
-	
+	/**
+	 * Daten für Jahres-Dropdown
+	 * @return array
+	 */
 	private function getYearToList_data() {
 		$today = getdate();
 		$expires_year = array();
@@ -99,12 +91,26 @@ function build_payment_info($data){
 		return $expires_year;
 	}
 	
+	/**
+	 * aktuelle Zeit ermitteln, gibt nur ein Element (z.B. year) bei Übergabe von $type, ansonsten Timestamp
+	 * @param string $type
+	 * @return int
+	 */
 	private function getCurrentTime($type = '0') {
 		$today = getdate();
 		return $today[$type];
 	}
 	
-	//TODO: Validierung Owner
+	
+
+	/**
+	 * Vorabvalidierung der eingegebenen Kreditkartendaten
+	 * @param array $data
+	 * @return array
+	 * 
+	 * @todo: Validierung Karteneigentümer angegeben
+	 * @todo: Validierung CVC2 angegeben
+	 */
 	public function _vrepayValidation($data) {
 		global $xtPlugin, $info;
 	
@@ -181,13 +187,15 @@ function build_payment_info($data){
 		return $vrepayValidationReturnValue;
 	}
 	
-	
-	function _vrepayProcessPayment($oID, $data) {
+	/**
+	 * Zahlung verarbeiten
+	 * @param int $oID
+	 * @param array $data
+	 * @return void
+	 */
+	public function _vrepayProcessPayment($oID, $data) {
 		global $order, $store_handler,$xtLink, $info;
-		//print_r($order);
-		//print_r($data);
-		//die();
-		
+
 		
 		$post_data = array();
 		
@@ -278,10 +286,8 @@ function build_payment_info($data){
 			curl_close($ch);
 
 			switch ($headers['http_code']) {
-				case '200':
-					//print_r($headers);
+				case '200':				
 					parse_str(substr($response,  $headers['header_size']), $response_body);
-					//echo substr($response,  $headers['header_size']);
 
 					if(isset($response_body['STATUS'])) {
 						switch ( $response_body['STATUS'] ) {
@@ -356,7 +362,7 @@ function build_payment_info($data){
 	}
 	
 		
-	function pspSuccess() {
+	public function pspSuccess() {
 		return true;
 	}
 	
