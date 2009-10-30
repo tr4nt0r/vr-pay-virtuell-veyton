@@ -309,7 +309,7 @@ print_r($_SESSION['xt_vrepay_data']);
 <config>
 <key>ACTIVATE_AMEX</key>
 <type>dropdown</type>
-<value>true</value>
+<value>false</value>
 <url>conf_truefalse</url>
 <sort_order>52</sort_order>
 <de>
@@ -322,7 +322,7 @@ print_r($_SESSION['xt_vrepay_data']);
 <config>
 <key>ACTIVATE_DINERS</key>
 <type>dropdown</type>
-<value>true</value>
+<value>false</value>
 <url>conf_truefalse</url>
 <sort_order>53</sort_order>
 <de>
@@ -335,7 +335,7 @@ print_r($_SESSION['xt_vrepay_data']);
 <config>
 <key>ACTIVATE_JCB</key>
 <type>dropdown</type>
-<value>true</value>
+<value>false</value>
 <url>conf_truefalse</url>
 <sort_order>54</sort_order>
 <de>
