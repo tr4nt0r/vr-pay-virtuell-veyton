@@ -30,7 +30,13 @@ class xt_vrepay {
 	 * @return void
 	 */
 	public function xt_vrepay() {
-
+		global $xtPlugin;
+		
+		if(!$this->check_license()) {
+			die();
+		}
+		
+		
 		if(is_data($_SESSION['xt_vrepay_data'])){
 			$this->data['payment_info'] = $this->build_payment_info($_SESSION['xt_vrepay_data']);
 			$tmp_data = $_SESSION['xt_vrepay_data'];
@@ -44,6 +50,8 @@ class xt_vrepay {
 		}
 		$this->data['vr_mto_list'] = $this->getMonthToList_data();
 		$this->data['vr_yto_list'] = $this->getYearToList_data();
+		
+		$this->data['vrepay_enabled'] = true;
 	}
 
 	
@@ -363,6 +371,16 @@ class xt_vrepay {
 	
 		
 	public function pspSuccess() {
+		return true;
+	}
+	
+	private function check_license() {
+		
+		include_once _SRV_WEBROOT . _SRV_WEB_PLUGINS . 'xt_vrepay/classes/class.license.lib.php';
+		include_once _SRV_WEBROOT . _SRV_WEB_PLUGINS . 'xt_vrepay/classes/class.license.app.php';
+		
+		$application = new license_application(_SRV_WEBROOT . 'lic/xt_vrepay_license.txt', true, true, true);
+		
 		return true;
 	}
 	
