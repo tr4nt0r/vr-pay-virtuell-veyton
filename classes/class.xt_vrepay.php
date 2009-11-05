@@ -32,9 +32,7 @@ class xt_vrepay {
 	public function xt_vrepay() {
 		global $xtPlugin;
 		
-		if(!$this->check_license()) {
-			die();
-		}
+		$this->check_license();		
 		
 		
 		if(is_data($_SESSION['xt_vrepay_data'])){
@@ -379,7 +377,14 @@ class xt_vrepay {
 		include_once _SRV_WEBROOT . _SRV_WEB_PLUGINS . 'xt_vrepay/classes/class.license.lib.php';
 		include_once _SRV_WEBROOT . _SRV_WEB_PLUGINS . 'xt_vrepay/classes/class.license.app.php';
 		
-		$application = new license_application(_SRV_WEBROOT . 'lic/xt_vrepay_license.txt', true, true, true);
+		$application = new license_application( _SRV_WEBROOT . 'lic/xt_vrepay_license.txt',	false, true, true, false, true, true, array('VEYTON_LIC' => $GLOBALS['lic_parms']['key']['value']) );
+		$results 	= $application->validate();
+		$application->make_secure();
+		
+		if($results['RESULT'] != 'OK') {
+			
+			$application->print_error($results);
+		}	
 		
 		return true;
 	}
