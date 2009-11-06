@@ -477,6 +477,38 @@ print_r($_SESSION['xt_vrepay_data']);
 </phrase>
 
 <phrase>
+<key>ERROR_CHECK_VREPAY_CCOWNER</key>
+<class>store</class>
+<de>
+<value>Bitte geben Sie einen Kreditkarteninhaber ein.</value>
+</de>
+<en>
+<value>Credit card owner is empty.</value>
+</en>
+</phrase>
+<phrase>
+<key>ERROR_CHECK_VREPAY_CVC2</key>
+<class>store</class>
+<de>
+<value>Der Sicherheitscode fehlt oder ist ung&amp;uuml;ltig.</value>
+</de>
+<en>
+<value>Secuity Code is empty or invalid.</value>
+</en>
+</phrase>
+<phrase>
+<key>ERROR_CHECK_VREPAY_CCNO</key>
+<class>store</class>
+<de>
+<value>Die Kreditkartennummer fehlt oder ist ung&amp;uuml;ltig.</value>
+</de>
+<en>
+<value>Credit card number is empty or invalid.</value>
+</en>
+</phrase>
+
+
+<phrase>
 <key>ERROR_CHECK_VREPAY_SYSTEM_UNAVAILABLE</key>
 <class>store</class>
 <de>

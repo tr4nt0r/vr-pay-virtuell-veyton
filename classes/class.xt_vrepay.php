@@ -124,42 +124,59 @@ class xt_vrepay {
 		if(isset($plugin_return_value))
 		return $plugin_return_value;
 
-		// check cardtype
-		if ( ereg('^4([0-9]){12,18}$', $data['vr_ccno'])) {		
-			$data['vr_ccbrand'] = 'VISA';		
-			if(XT_VREPAY_ACTIVATE_VISA != 'true') {
-				$error['vr_ccbrand'] = 'true';
-				$info->_addInfo(ERROR_CHECK_VREPAY_BRAND_VISA_UNSUPPORTED);
-			}
-		} elseif ( ereg('^5([0-9]){15}$', $data['vr_ccno'])) {
-			$data['vr_ccbrand'] = 'ECMC';
-			if(XT_VREPAY_ACTIVATE_ECMC != 'true') {
-				$error['vr_ccbrand'] = 'true';
-				$info->_addInfo(ERROR_CHECK_VREPAY_BRAND_ECMC_UNSUPPORTED);
-			}
-		} elseif ( ereg('^3(4|7)([0-9]){1,14}$', $data['vr_ccno'])) {
-			$data['vr_ccbrand'] = 'AMEX';
-			if(XT_ACTIVATE_AMEX != 'true') {
-				$error['vr_ccbrand'] = 'true';
-				$info->_addInfo(ERROR_CHECK_VREPAY_BRAND_AMEX_UNSUPPORTED);
-			}
-		} elseif ( ereg('^3(0|6|8)([0-5])([0-9]){1,13}$', $data['vr_ccno'])) {
-			$data['vr_ccbrand'] = 'DINERS';
-			if(XT_VREPAY_ACTIVATE_JCB != 'true') {
-				$error['vr_ccbrand'] = 'true';
-				$info->_addInfo(ERROR_CHECK_VREPAY_BRAND_DINERS_UNSUPPORTED);
-			}
-		} elseif ( ereg('^35(2|3|4|5|6|7|8)([0-9]){1,20}$', $data['vr_ccno'])) {
-			$data['vr_ccbrand'] = 'JCB';
-			if(XT_VREPAY_ACTIVATE_DINERS != 'true') {
-				$error['vr_ccbrand'] = 'true';
-				$info->_addInfo(ERROR_CHECK_VREPAY_BRAND_JCB_UNSUPPORTED);
-			}
+
+		
+		if(!is_numeric($data['vr_cvc2']) || strlen($data['vr_cvc2']) < 3 || strlen($data['vr_cvc2']) > 4) {
+			$error['vr_cvc2'] = 'true';
+			$info->_addInfo(ERROR_CHECK_VREPAY_CVC2);
+		}
+		
+		if(empty($data['vr_ccowner'])) {
+			$error['vr_ccowner'] = 'true';
+			$info->_addInfo(ERROR_CHECK_VREPAY_CCOWNER);
+		}
+		
+		if(!is_numeric($data['vr_ccno']) || empty($data['vr_ccno'])) {
+			$error['vr_ccno'] = 'true';
+			$info->_addInfo(ERROR_CHECK_VREPAY_CCNO);
 		} else {
-			// redirect to checkout_payment with errormessage
-			$error['vr_ccbrand'] = 'true';
-			$info->_addInfo(ERROR_CHECK_VREPAY_BRAND_UNSUPPORTED);
-		}			
+			// check cardtype
+			if ( ereg('^4([0-9]){12,18}$', $data['vr_ccno'])) {
+				$data['vr_ccbrand'] = 'VISA';
+				if(XT_VREPAY_ACTIVATE_VISA != 'true') {
+					$error['vr_ccbrand'] = 'true';
+					$info->_addInfo(ERROR_CHECK_VREPAY_BRAND_VISA_UNSUPPORTED);
+				}
+			} elseif ( ereg('^5([0-9]){15}$', $data['vr_ccno'])) {
+				$data['vr_ccbrand'] = 'ECMC';
+				if(XT_VREPAY_ACTIVATE_ECMC != 'true') {
+					$error['vr_ccbrand'] = 'true';
+					$info->_addInfo(ERROR_CHECK_VREPAY_BRAND_ECMC_UNSUPPORTED);
+				}
+			} elseif ( ereg('^3(4|7)([0-9]){1,14}$', $data['vr_ccno'])) {
+				$data['vr_ccbrand'] = 'AMEX';
+				if(XT_ACTIVATE_AMEX != 'true') {
+					$error['vr_ccbrand'] = 'true';
+					$info->_addInfo(ERROR_CHECK_VREPAY_BRAND_AMEX_UNSUPPORTED);
+				}
+			} elseif ( ereg('^3(0|6|8)([0-5])([0-9]){1,13}$', $data['vr_ccno'])) {
+				$data['vr_ccbrand'] = 'DINERS';
+				if(XT_VREPAY_ACTIVATE_JCB != 'true') {
+					$error['vr_ccbrand'] = 'true';
+					$info->_addInfo(ERROR_CHECK_VREPAY_BRAND_DINERS_UNSUPPORTED);
+				}
+			} elseif ( ereg('^35(2|3|4|5|6|7|8)([0-9]){1,20}$', $data['vr_ccno'])) {
+				$data['vr_ccbrand'] = 'JCB';
+				if(XT_VREPAY_ACTIVATE_DINERS != 'true') {
+					$error['vr_ccbrand'] = 'true';
+					$info->_addInfo(ERROR_CHECK_VREPAY_BRAND_JCB_UNSUPPORTED);
+				}
+			} else {
+				// redirect to checkout_payment with errormessage
+				$error['vr_ccbrand'] = 'true';
+				$info->_addInfo(ERROR_CHECK_VREPAY_BRAND_UNSUPPORTED);
+			}
+		}
 			// check range of expiry month
 		if ( !is_numeric($data['vr_mto']) || ($data['vr_mto'] < 1) || ($data['vr_mto'] > 12) ) {
 			$error['vr_mto'] = 'true';
@@ -379,7 +396,7 @@ class xt_vrepay {
 		
 		$application = new license_application( _SRV_WEBROOT . 'lic/xt_vrepay_license.txt',	false, true, true, false, true, true, array('VEYTON_LIC' => $GLOBALS['lic_parms']['key']['value']) );
 		$results 	= $application->validate();
-		$application->make_secure();
+		//$application->make_secure();
 		
 		if($results['RESULT'] != 'OK') {
 			
