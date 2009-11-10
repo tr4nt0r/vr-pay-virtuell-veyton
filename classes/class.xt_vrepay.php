@@ -61,10 +61,10 @@ class xt_vrepay {
 	private function build_payment_info($data){
 
 		$payment_info = '';
-		$payment_info .= TEXT_VREPAY_CCOWNER . ': ' . $data['vr_ccowner'] . '<br />';
-		$payment_info .= TEXT_VREPAY_CCNO . ': ' .  substr($data['vr_ccno'], 0, 4).str_repeat('X', (strlen($data['vr_ccno']) - 8)) .substr($data['vr_ccno'], -4) . '<br />';
-		$payment_info .= TEXT_VREPAY_EXPIRES . ': ' . strftime('%B %Y', mktime(0, 0, 0, $data['vr_mto'], 1, $data['vr_yto'] )) . '<br />';
-		$payment_info .= TEXT_VREPAY_CVC2 . ': ' . $data['vr_cvc2'];
+		$payment_info .= ($data['vr_ccowner'] != '') ? TEXT_VREPAY_CCOWNER . ': ' . $data['vr_ccowner'] . '<br />' : '';
+		$payment_info .= ($data['vr_ccno'] != '') ? TEXT_VREPAY_CCNO . ': ' .  substr($data['vr_ccno'], 0, 4).str_repeat('X', (strlen($data['vr_ccno']) - 8)) .substr($data['vr_ccno'], -4) . '<br />' : '';
+		$payment_info .= ($data['vr_mto'] != '' && $data['vr_yto'] != '') ? TEXT_VREPAY_EXPIRES . ': ' . strftime('%B %Y', mktime(0, 0, 0, $data['vr_mto'], 1, $data['vr_yto'] )) . '<br />' : '';
+		$payment_info .= ($data['vr_cvc2'] != '') ? TEXT_VREPAY_CVC2 . ': ' . $data['vr_cvc2'] : '';
 
 
 		return $payment_info;
