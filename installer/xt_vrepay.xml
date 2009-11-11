@@ -130,7 +130,7 @@ $db->Execute("INSERT INTO ".TABLE_PAYMENT_COST." (`payment_id`, `payment_geo_zon
 <code>
 <hook>module_checkout.php:checkout_data</hook>
 <phpcode><![CDATA[
-
+if($_SESSION['selected_payment']=='xt_vrepay'){
   if(is_data($_SESSION['xt_vrepay_data'])){
     $temp_data = $_SESSION['xt_vrepay_data'];
     $xt_vrepay_temp = new xt_vrepay;
@@ -145,7 +145,7 @@ $db->Execute("INSERT INTO ".TABLE_PAYMENT_COST." (`payment_id`, `payment_geo_zon
            'total' => $_SESSION['cart']->total['formated']
     );
   }
-
+}
 ]]></phpcode>
 <order>1</order>
 <active>1</active>
@@ -355,6 +355,20 @@ $db->Execute("INSERT INTO ".TABLE_PAYMENT_COST." (`payment_id`, `payment_geo_zon
 </de>
 <en>
 <title>Activate JCB</title>
+</en>
+</config>
+
+<config>
+<key>ACTIVATE_ELV</key>
+<type>dropdown</type>
+<value>true</value>
+<url>conf_truefalse</url>
+<sort_order>55</sort_order>
+<de>
+<title>Lastschrift aktivieren (ben&amp;ouml;tigt xt_banktransfer)</title>
+</de>
+<en>
+<title>Activate Direct debit transfer (requires xt_banktransfer)</title>
 </en>
 </config>
 
