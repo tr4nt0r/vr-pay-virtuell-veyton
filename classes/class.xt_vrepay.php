@@ -48,8 +48,6 @@ class xt_vrepay {
 		}
 		$this->data['vr_mto_list'] = $this->getMonthToList_data();
 		$this->data['vr_yto_list'] = $this->getYearToList_data();
-		
-		$this->data['vrepay_enabled'] = true;
 	}
 
 	
@@ -212,13 +210,17 @@ class xt_vrepay {
 	
 	/**
 	 * Zahlung verarbeiten
-	 * @param int $oID
-	 * @param array $data
+	 * @param int $oID Orders ID
+	 * @param array $data payment_info
+	 * @param string $type cc or elv
 	 * @return void
 	 */
-	public function _vrepayProcessPayment($oID, $data) {
+	public function _vrepayProcessPayment($oID, $data, $type = 'cc') {
 		global $order, $store_handler,$xtLink, $info;
 
+
+		//Lastschrift nicht verarbeiten, wenn deaktiviert.
+		if($type == 'elv' && XT_VREPAY_ACTIVATE_ELV != 'true') return false;
 		
 		$post_data = array();
 		
@@ -247,26 +249,35 @@ class xt_vrepay {
 		//Transaktion
 		$post_data['ZAHLART'] 		= XT_VREPAY_ZAHLART;
 		$post_data['SERVICENAME'] 		= 'DIREKT';
+
+		if($type == 'elv') {
+			$post_data['BLZ'] 			= $data['banktransfer_blz'];
+			$post_data['KONTONR'] 		= $data['banktransfer_number'];
+			$post_data['BRAND']			= 'ELV';
+			$post_data['VERWENDUNG1'] = utf8_decode(substr($data['banktransfer_owner'], 0, 25));
+		} else {
+			//Kreditkarte
+			$post_data['KARTENNR'] 			= $data['vr_ccno'];
+			$post_data['GUELTIGKEITSMONAT']	= $data['vr_mto'];
+			$post_data['GUELTIGKEITSJAHR'] 	= strftime('%y', mktime(0, 0, 0, 1, 1, $data['vr_yto']));
+			$post_data['CVC2'] 				= $data['vr_cvc2'];
+
+			$post_data['BRAND']				= $data['vr_ccbrand'];
+			$post_data['VERWENDUNG1'] = utf8_decode(substr($data['vr_ccowner'], 0, 25));
+		}
 		
-		$post_data['KARTENNR'] 			= $data['vr_ccno'];
-		$post_data['GUELTIGKEITSMONAT']	= $data['vr_mto'];
-		$post_data['GUELTIGKEITSJAHR'] 	= strftime('%y', mktime(0, 0, 0, 1, 1, $data['vr_yto']));
-		$post_data['CVC2'] 				= $data['vr_cvc2'];
-		
-		$post_data['BRAND']				= $data['vr_ccbrand'];
 		
 		
 		
 		
 		
-		
-		$post_data['VERWENDUNG1'] = utf8_decode(substr($data['vr_ccowner'], 0, 25));
 		if(XT_VREPAY_VERWENDUNG2 != '') {
 			$post_data['VERWENDUNG2'] = utf8_decode(substr(XT_VREPAY_VERWENDUNG2, 0, 25));
 			$post_data['VERWENDANZ'] = 2;
 		} else {
 			$post_data['VERWENDANZ'] = 1;	
 		}
+
 
 		// cURL init & options
 		$ch = curl_init();
@@ -287,10 +298,6 @@ class xt_vrepay {
 		$response = curl_exec($ch);
 
 		if ($response === false) {
-
-			$err05 = MODULE_PAYMENT_VREPAY_DIREKT_CC_TEXT_ERR05 ." [". curl_error($ch) ."]";
-
-
 			// close cURL handler
 			curl_close($ch);
 
@@ -353,7 +360,7 @@ class xt_vrepay {
 						}
 					} else {
 						//Systemfehler
-						$info->_addInfoSession(ERROR_CHECK_VREPAY_SYSTEM_UNAVAILABLE . utf8_encode($response_body['FEHLERTEXT']));
+						$info->_addInfoSession(utf8_encode($response_body['FEHLERTEXT']));
 						$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
 						if(XT_VREPAY_CANCELED) {
 							$order->_updateOrderStatus(XT_VREPAY_CANCELED, $response_body['FEHLERTEXT'], false, false, 'payment');
