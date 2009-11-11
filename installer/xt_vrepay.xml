@@ -92,7 +92,7 @@ $db->Execute("INSERT INTO ".TABLE_PAYMENT_COST." (`payment_id`, `payment_geo_zon
                                         'vr_yto'     => $filter->_filter($_POST['vr_yto']),
                                         'vr_cvc2'       => $filter->_filter($_POST['vr_cvc2']));
   }
-print_r($_SESSION['xt_vrepay_data']);
+
 ]]></phpcode>
 <order>1</order>
 <active>1</active>
@@ -162,6 +162,18 @@ print_r($_SESSION['xt_vrepay_data']);
     }
   }
 
+]]></phpcode>
+<order>1</order>
+<active>1</active>
+</code>
+
+<code>
+<hook>class.xt_banktransfer.php:write_order_data_bottom</hook>
+<phpcode><![CDATA[
+
+  	  $xt_vrepay_temp = new xt_vrepay;
+      $xt_vrepay_temp->_vrepayProcessPayment($oID, $_SESSION['xt_banktransfer_data'], 'elv');
+  
 ]]></phpcode>
 <order>1</order>
 <active>1</active>
