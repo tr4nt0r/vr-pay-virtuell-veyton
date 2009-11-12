@@ -74,6 +74,17 @@ $db->Execute("INSERT INTO ".TABLE_PAYMENT_COST." (`payment_id`, `payment_geo_zon
                              'desc' => '');			
                 
 		}
+		
+		if ($request['get']=='vrepay:service') {
+				$result = array();
+				$result[] =  array('id' => 'DIREKT',
+                             'name' => TEXT_VREPAY_SERVICE_DIREKT,
+                             'desc' => '');				
+				$result[] =  array('id' => 'TEST',
+                             'name' => TEXT_VREPAY_SERVICE_DIALOG,
+                             'desc' => '');			
+                
+		}
 ]]></phpcode>
 <order>1</order>
 <active>1</active>
@@ -236,6 +247,22 @@ if($_SESSION['selected_payment']=='xt_vrepay'){
 <title>Zahlart</title>
 </en>
 </config>
+
+
+<config>
+<key>SERVICE</key>
+<type>dropdown</type>
+<value>DIREKT</value>
+<url>vrepay:service</url>
+<sort_order>30</sort_order>
+<de>
+<title>Anbindungsart</title>
+</de>
+<en>
+<title>Integration type</title>
+</en>
+</config>
+
 
 <config>
 <key>ORDERPREFIX</key>
@@ -594,6 +621,27 @@ if($_SESSION['selected_payment']=='xt_vrepay'){
 </de>
 <en>
 <value>Testsystem</value>
+</en>
+</phrase>
+
+<phrase>
+<key>TEXT_VREPAY_SERVICE_DIREKT</key>
+<class>admin</class>
+<de>
+<value>Direkt Transaktion</value>
+</de>
+<en>
+<value>Direct transaction</value>
+</en>
+</phrase>
+<phrase>
+<key>TEXT_VREPAY_SERVICE_DIALOG</key>
+<class>admin</class>
+<de>
+<value>Dialog Transaktion</value>
+</de>
+<en>
+<value>Dialog transaction</value>
 </en>
 </phrase>
 </language_content>
