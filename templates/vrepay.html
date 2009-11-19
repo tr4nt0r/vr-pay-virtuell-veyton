@@ -11,58 +11,122 @@
  */
 {/php}
 
-<table class="paymentblock" width="100%" border="0" cellspacing="0" cellpadding="6">
-  <tr>
-		  	{if $payment_hidden == true}
-		  		{form type=hidden name=selected_payment value=$payment_code}
-		  	{else}			
-			  	{if $payment_code==$payment_selected}
-			  	<td class="header" width="10px">{form type=radio name=selected_payment value=$payment_code checked=true}</td>
-			  	{else}
-			  	<td class="header" width="10px">{form type=radio name=selected_payment value=$payment_code}</td>
-			  	{/if}
-			{/if}   
-			
-    <td class="header"><strong><label for="{$payment_code}">{$payment_name}</label></strong></td>
-    {if $payment_icon}
-    <td class="header"><strong>{$payment_icon}</strong></td>
-    {/if}
-    <td class="header" align="right">{$payment_price.formated}</td>
-  </tr>
-  <tr>
-    <td colspan="4" class="main">{$payment_desc}</td>
-  </tr>  	    
-  <tr>
-    <td colspan="4" class="main">
-    {if $smarty.const.XT_VREPAY_ACTIVATE_VISA == 'true'}{img img=VISA.gif type=p plg=xt_vrepay class=productImageBorder}{/if}
-    {if $smarty.const.XT_VREPAY_ACTIVATE_ECMC == 'true'}{img img=ECMC.gif type=p plg=xt_vrepay class=productImageBorder}{/if}
-    {if $smarty.const.XT_VREPAY_ACTIVATE_AMEX == 'true'}{img img=AMEX.gif type=p plg=xt_vrepay class=productImageBorder}{/if}
-    {if $smarty.const.XT_VREPAY_ACTIVATE_DINERS == 'true'}{img img=DINERS.gif type=p plg=xt_vrepay class=productImageBorder}{/if}
-    {if $smarty.const.XT_VREPAY_ACTIVATE_JCB == 'true'}{img img=JCB.gif type=p plg=xt_vrepay class=productImageBorder}{/if}
-    </td>
-  </tr>  	    
 
-  <tr>
-    <td colspan class="main">{txt key=TEXT_VREPAY_CCOWNER}</td>
-    <td colspan="2" class="main">{form type=text name=vr_ccowner value=$vr_ccowner}</td>
-  </tr>
+<table class="paymentblock" width="100%" border="0" cellspacing="0"
+	cellpadding="6">
+	<tr>
+		{if $smarty.const.XT_VREPAY_SERVICE == 'DIALOG'}
+				<td class="header" width="10px">{form type=radio name=selected_payment value=$payment_code:CC}</td>
+		{else}
+			{if $payment_hidden == true} 
+				{form type=hidden name=selected_payment value=$payment_code} 
+			{else} 
+				{if $payment_code==$payment_selected}
+					<td class="header" width="10px">{form type=radio name=selected_payment value=$payment_code checked=true}</td>			
+				{else}
+					<td class="header" width="10px">{form type=radio name=selected_payment value=$payment_code}</td>
+				{/if} 
+			{/if}
+		{/if}
+		<td class="header"><strong>{$payment_name}</strong></td>
+		{if $payment_icon}
+		<td class="header"><strong>{$payment_icon}</strong></td>
+		{/if}
+		<td class="header" align="right">{$payment_price.formated}</td>
+	</tr>
+	<tr>
+		<td colspan="4" class="main">{$payment_desc}</td>
+	</tr>
+	<tr>
+		<td colspan="4" class="main">
+		{if $smarty.const.XT_VREPAY_ACTIVATE_VISA == 'true'}{img img=VISA.gif type=p plg=xt_vrepay class=productImageBorder}{/if} 
+		{if $smarty.const.XT_VREPAY_SERVICE == 'DIALOG'}{img img=VISA3DS.gif type=p plg=xt_vrepay class=productImageBorder}{/if} 
+		{if	$smarty.const.XT_VREPAY_ACTIVATE_ECMC == 'true'}{img img=ECMC.gif type=p plg=xt_vrepay class=productImageBorder}{/if} 
+		{if	$smarty.const.XT_VREPAY_SERVICE == 'DIALOG'}{img img=ECMC3DS.gif type=p plg=xt_vrepay class=productImageBorder}{/if} 
+		{if	$smarty.const.XT_VREPAY_ACTIVATE_AMEX == 'true'}{img img=AMEX.gif type=p plg=xt_vrepay class=productImageBorder}{/if} 
+		{if	$smarty.const.XT_VREPAY_ACTIVATE_DINERS == 'true'}{img img=DINERS.gif type=p plg=xt_vrepay class=productImageBorder}{/if} 
+		{if $smarty.const.XT_VREPAY_ACTIVATE_JCB == 'true'}{img img=JCB.gif type=p plg=xt_vrepay class=productImageBorder}{/if}		
+		</td>
+	</tr>
+	<tr>
+		<td class="main" colspan="4">
+		{if $smarty.const.XT_VREPAY_SERVICE ==	'DIALOG'}
 
-  <tr>
-    <td colspan class="main">{txt key=TEXT_VREPAY_CCNO}</td>
-    <td colspan="2" class="main">
-    {form type=text name=vr_ccno value=$vr_ccno}
-    </td>
-  </tr>
+		{else}
+		<table border="0" cellspacing="0" cellpadding="6">
+			<tr>
+				<td class="main">{txt key=TEXT_VREPAY_CCOWNER}</td>
+				<td class="main">{form type=text name=vr_ccowner
+				value=$vr_ccowner}</td>
+			</tr>
 
-  <tr>
-    <td colspan class="main">{txt key=TEXT_VREPAY_EXPIRES}</td>
-    <td colspan="2" class="main">{form type=select name=vr_mto value=$vr_mto_list default=$vr_mto}&nbsp;{form type=select name=vr_yto value=$vr_yto_list default=$vr_yto}</td>
-  </tr>
+			<tr>
+				<td class="main">{txt key=TEXT_VREPAY_CCNO}</td>
+				<td class="main">{form type=text name=vr_ccno value=$vr_ccno}</td>
+			</tr>
 
-  <tr>
-    <td colspan class="main">{txt key=TEXT_VREPAY_CVC2}</td>
-    <td colspan="2" class="main">{form type=text name=vr_cvc2 value=$vr_cvc2 params='maxlength="4" style="width:50px;"'}</td>
-  </tr>
+			<tr>
+				<td class="main">{txt key=TEXT_VREPAY_EXPIRES}</td>
+				<td class="main">{form type=select name=vr_mto value=$vr_mto_list default=$vr_mto}&nbsp;{form type=select name=vr_yto value=$vr_yto_list default=$vr_yto}</td>
+			</tr>
 
+			<tr>
+				<td class="main">{txt key=TEXT_VREPAY_CVC2}</td>
+				<td class="main">{form type=text name=vr_cvc2 value=$vr_cvc2 params='maxlength="4" style="width:50px;"'}</td>
+			</tr>
+		</table>
+		{/if}
+		
+		</td>
+	</tr>
 </table>
 <br />
+
+{if $smarty.const.XT_VREPAY_SERVICE == 'DIALOG'}
+<table class="paymentblock" width="100%" border="0" cellspacing="0"
+	cellpadding="6">
+	<tr>
+		
+		<td class="header" width="10px">
+		{form type=radio name=selected_payment value=$payment_code:ELV}
+		</td>		
+		<td class="header"><strong>{txt key=TEXT_PAYMENT_ELV}</strong></td>
+		{if $payment_icon}
+		<td class="header"><strong>{$payment_icon}</strong></td>
+		{/if}
+		<td class="header" align="right">{$payment_price.formated}</td>
+	</tr>
+	<tr>
+		<td colspan="4" class="main"></td>
+	</tr>
+	<tr>
+		<td colspan="4" class="main">
+		{if	$smarty.const.XT_VREPAY_ACTIVATE_ELV == 'true'}{img img=ELV.gif	type=p plg=xt_vrepay class=productImageBorder}{/if}	 		
+		</td>
+	</tr>
+</table>
+<br />
+<table class="paymentblock" width="100%" border="0" cellspacing="0"
+	cellpadding="6">
+	<tr>
+		
+		<td class="header" width="10px">
+		{form type=radio name=selected_payment value=$payment_code:GIROPAY}
+		</td>		
+		<td class="header"><strong>{txt key=TEXT_PAYMENT_GIROPAY}</strong></td>
+		{if $payment_icon}
+		<td class="header"><strong>{$payment_icon}</strong></td>
+		{/if}
+		<td class="header" align="right">{$payment_price.formated}</td>
+	</tr>
+	<tr>
+		<td colspan="4" class="main"></td>
+	</tr>
+	<tr>
+		<td colspan="4" class="main">
+		{if	$smarty.const.XT_VREPAY_ACTIVATE_GIRO != 'true'}{img img=GIROPAY.gif	type=p plg=xt_vrepay class=productImageBorder}{/if}		 		
+		</td>
+	</tr>
+</table>
+<br />
+{/if}

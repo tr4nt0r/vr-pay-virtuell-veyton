@@ -21,6 +21,8 @@ class xt_vrepay {
 	public $post_form = false;
 	public $iframe = false;
 	public $data = array();
+	public $allowed_subpayments = array('CC', 'GIROPAY', 'ELV');
+	
 	
 	private $target_url_live = 'https://pay.vr-epay.de/pbr/transaktion';
 	private $target_url_test = 'https://payinte.vr-epay.de/pbr/transaktion';
@@ -31,23 +33,28 @@ class xt_vrepay {
 	 */
 	public function xt_vrepay() {
 		global $xtPlugin;
-		
-		$this->check_license();		
-		
-		
-		if(is_data($_SESSION['xt_vrepay_data'])){
-			$this->data['payment_info'] = $this->build_payment_info($_SESSION['xt_vrepay_data']);
-			$tmp_data = $_SESSION['xt_vrepay_data'];
 
-			while (list ($key, $value) = each($tmp_data)) {
-				$this->data[$key] = $value;
-			}
+		$this->check_license();
+
+		if(XT_VREPAY_SERVICE == 'DIALOG') {
+			$this->subpayments = true;
+			$this->external = true;
 		} else {
-			$this->data['vr_mto'] = sprintf('%02d', $this->getCurrentTime('mon'));
-			$this->data['vr_yto'] = strftime('%Y', mktime(0, 0, 0, 1, 1, $this->getCurrentTime('year') ));
+
+			if(is_data($_SESSION['xt_vrepay_data'])){
+				$this->data['payment_info'] = $this->build_payment_info($_SESSION['xt_vrepay_data']);
+				$tmp_data = $_SESSION['xt_vrepay_data'];
+
+				while (list ($key, $value) = each($tmp_data)) {
+					$this->data[$key] = $value;
+				}
+			} else {
+				$this->data['vr_mto'] = sprintf('%02d', $this->getCurrentTime('mon'));
+				$this->data['vr_yto'] = strftime('%Y', mktime(0, 0, 0, 1, 1, $this->getCurrentTime('year') ));
+			}
+			$this->data['vr_mto_list'] = $this->getMonthToList_data();
+			$this->data['vr_yto_list'] = $this->getYearToList_data();
 		}
-		$this->data['vr_mto_list'] = $this->getMonthToList_data();
-		$this->data['vr_yto_list'] = $this->getYearToList_data();
 	}
 
 	
@@ -220,63 +227,9 @@ class xt_vrepay {
 
 
 		//Lastschrift nicht verarbeiten, wenn deaktiviert.
-		if($type == 'elv' && XT_VREPAY_ACTIVATE_ELV != 'true') return false;
+		if($type == 'elv' && XT_VREPAY_ACTIVATE_ELV != 'true' && XT_VREPAY_SERVICE != 'DIALOG') return false;
 		
-		$post_data = array();
-		
-		//Allgemeine Parameter
-		$post_data['HAENDLERNR']	= XT_VREPAY_HAENDLERNR;
-		$post_data['TSATYP']		= 'ECOM';
-		
-		//Bestelldaten
-		$post_data['REFERENZNR']	= substr(XT_VREPAY_ORDERPREFIX. $store_handler->shop_id . '-' .$oID, -20);
-		$currency = new currency($order->order_data['currency_code']);		
-		$post_data['BETRAG']			= $order->order_total['total']['plain'] * pow(10, $currency->decimals);		
-		$post_data['WAEHRUNG']		= $order->order_data['currency_code'];
-		$post_data['INFOTEXT']		= '';
-		$post_data['ARTIKELANZ']	= count($order->order_products);
-		
-		//Warenkorb
-		
-		
-		for($i = 0; $i < count($order->order_products); $i++) {
-			$post_data['ARTIKELNR' . ($i+1)] = $order->order_products[$i]['products_model'];
-			$post_data['ARTIKELBEZ' . ($i+1)] = utf8_decode($order->order_products[$i]['products_name']);
-			$post_data['ANZAHL' . ($i+1)] = (int)$order->order_products[$i]['products_quantity'];
-			$post_data['EINZELPREIS' . ($i+1)] = $order->order_products[$i]['products_price']['plain'] * pow(10, $currency->decimals);
-		}
-
-		//Transaktion
-		$post_data['ZAHLART'] 		= XT_VREPAY_ZAHLART;
-		$post_data['SERVICENAME'] 		= 'DIREKT';
-
-		if($type == 'elv') {
-			$post_data['BLZ'] 			= $data['banktransfer_blz'];
-			$post_data['KONTONR'] 		= $data['banktransfer_number'];
-			$post_data['BRAND']			= 'ELV';
-			$post_data['VERWENDUNG1'] = utf8_decode(substr($data['banktransfer_owner'], 0, 25));
-		} else {
-			//Kreditkarte
-			$post_data['KARTENNR'] 			= $data['vr_ccno'];
-			$post_data['GUELTIGKEITSMONAT']	= $data['vr_mto'];
-			$post_data['GUELTIGKEITSJAHR'] 	= strftime('%y', mktime(0, 0, 0, 1, 1, $data['vr_yto']));
-			$post_data['CVC2'] 				= $data['vr_cvc2'];
-
-			$post_data['BRAND']				= $data['vr_ccbrand'];
-			$post_data['VERWENDUNG1'] = utf8_decode(substr($data['vr_ccowner'], 0, 25));
-		}
-		
-		
-		
-		
-		
-		
-		if(XT_VREPAY_VERWENDUNG2 != '') {
-			$post_data['VERWENDUNG2'] = utf8_decode(substr(XT_VREPAY_VERWENDUNG2, 0, 25));
-			$post_data['VERWENDANZ'] = 2;
-		} else {
-			$post_data['VERWENDANZ'] = 1;	
-		}
+		$post_data = &$this->get_post_data($data, $type);
 
 
 		// cURL init & options
@@ -302,7 +255,7 @@ class xt_vrepay {
 			curl_close($ch);
 
 			$info->_addInfoSession(ERROR_CHECK_VREPAY_SYSTEM_UNAVAILABLE);
-			$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
+			$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));			
 			if(XT_VREPAY_CANCELED) {
 				$order->_updateOrderStatus(XT_VREPAY_CANCELED, 'Status:'.  curl_error($ch), false, false, 'payment');
 			}
@@ -385,14 +338,245 @@ class xt_vrepay {
 		}	
 	}
 	
+	private function get_post_data(&$data, $type = 'cc') {
+		global $order, $store_handler, $xtLink;
+		
+		$xtLink->amp = '&';
+		$post_data = array();
+		
+		//Allgemeine Parameter
+		$post_data['HAENDLERNR']	= XT_VREPAY_HAENDLERNR;
+		$post_data['TSATYP']		= 'ECOM';
+		
+		//Bestelldaten
+		$post_data['REFERENZNR']	= substr(XT_VREPAY_ORDERPREFIX. $store_handler->shop_id . '-' .$order->oID, -20);
+		$currency = new currency($order->order_data['currency_code']);		
+		$post_data['BETRAG']			= $order->order_total['total']['plain'] * pow(10, $currency->decimals);		
+		$post_data['WAEHRUNG']		= $order->order_data['currency_code'];
+		$post_data['INFOTEXT']		= '';
+		$post_data['ARTIKELANZ']	= count($order->order_products);
+		
+		//Warenkorb
+		
+		
+		for($i = 0; $i < count($order->order_products); $i++) {
+			$post_data['ARTIKELNR' . ($i+1)] = $order->order_products[$i]['products_model'];
+			$post_data['ARTIKELBEZ' . ($i+1)] = utf8_decode($order->order_products[$i]['products_name']);
+			$post_data['ANZAHL' . ($i+1)] = (int)$order->order_products[$i]['products_quantity'];
+			$post_data['EINZELPREIS' . ($i+1)] = $order->order_products[$i]['products_price']['plain'] * pow(10, $currency->decimals);
+		}
+
+		//Transaktion
+		$post_data['ZAHLART'] 		= XT_VREPAY_ZAHLART;
+		$post_data['SERVICENAME'] 	= XT_VREPAY_SERVICE;
+
+		if(XT_VREPAY_SERVICE == 'DIREKT') {
+			if($type == 'elv') {
+				$post_data['BLZ'] 			= $data['banktransfer_blz'];
+				$post_data['KONTONR'] 		= $data['banktransfer_number'];
+				$post_data['BRAND']			= 'ELV';
+				$post_data['VERWENDUNG1'] = utf8_decode(substr($data['banktransfer_owner'], 0, 25));
+			} elseif($type == 'cc') {
+				//Kreditkarte
+				$post_data['KARTENNR'] 			= $data['vr_ccno'];
+				$post_data['GUELTIGKEITSMONAT']	= $data['vr_mto'];
+				$post_data['GUELTIGKEITSJAHR'] 	= strftime('%y', mktime(0, 0, 0, 1, 1, $data['vr_yto']));
+				$post_data['CVC2'] 				= $data['vr_cvc2'];
+
+				$post_data['BRAND']				= $data['vr_ccbrand'];
+				$post_data['VERWENDUNG1'] = utf8_decode(substr($data['vr_ccowner'], 0, 25));
+			}
+		}			
+		
+		if(XT_VREPAY_VERWENDUNG2 != '') {
+			$post_data['VERWENDUNG2'] = utf8_decode(substr(XT_VREPAY_VERWENDUNG2, 0, 25));
+			$post_data['VERWENDANZ'] = 2;
+		} else {
+			$post_data['VERWENDANZ'] = 1;	
+		}
+		
+		$callback_secret = md5($post_data['BETRAG'].$post_data['REFERENZNR'].XT_VREPAY_ANTWGEHEIMNIS);
+			
+		$post_data['ANTWGEHEIMNIS']	= $callback_secret;
+		
+		if(XT_VREPAY_SERVICE == 'DIALOG') {
+			
+			if(defined('XT_VREPAY_CONTENT_AGB') && XT_VREPAY_CONTENT_AGB) {
+				$shop_content_agb =  new content(XT_VREPAY_CONTENT_AGB);
+				if ($shop_content_agb->data['content_status']) {
+					$post_data['URLAGB'] = $shop_content_agb->data['content_link'];
+				}
+
+			}
+
+			if(defined('XT_VREPAY_CONTENT_CVC') && XT_VREPAY_CONTENT_CVC) {
+				$shop_content_agb =  new content(XT_VREPAY_CONTENT_CVC);
+				if ($shop_content_agb->data['content_status']) {
+					$post_data['URLCVC'] = $shop_content_agb->content_link;
+				}
+			}
+			
+			$post_data['URLERFOLG'] = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment_process', 'params' => '&ANTWGEHEIMNIS='.$callback_secret, 'conn'=>'SSL'));
+			
+			$post_data['URLFEHLER'] = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment_process', 'params' => 'redirect=error&ANTWGEHEIMNIS='.$callback_secret, 'conn'=>'SSL'));
+			$post_data['URLABBRUCH'] = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment_process', 'params' => 'redirect=userabort&ANTWGEHEIMNIS='.$callback_secret, 'conn'=>'SSL'));
+			$post_data['URLANTWORT'] = $xtLink->_link(array('page'=>'callback', 'paction'=>'xt_vrepay', 'conn'=>'SSL'));;
+			//		
+			$post_data['BENACHRPROF']	= "ALL";
+			
+
+			$post_data['SPRACHE']		= ($order->order_data['language_code'] == 'de' || $order->order_data['language_code'] == 'en') ? strtoupper($order->order_data['language_code']) : 'EN';
+			
+			switch($_SESSION['selected_payment_sub']) {
+				case 'ELV':
+					$post_data['AUSWAHL'] = 'N';
+					$post_data['BRAND'] = 'ELV';
+					break;
+				case 'GIROPAY':
+					$post_data['AUSWAHL'] = 'N';
+					$post_data['BRAND'] = 'GIROPAY';
+					break;
+				
+				case 'CC':
+				case 'VISA':
+				case 'ECMC':
+				case 'DINERS':
+				case 'AMEX':
+				case 'JCB':
+					$auswahl = array();
+					
+					if(XT_VREPAY_ACTIVATE_VISA == 'true') {
+						$auswahl[] = 'VISA';
+					}
+					if(XT_VREPAY_ACTIVATE_ECMC == 'true') {
+						$auswahl[] = 'ECMC';
+					}
+					if(XT_VREPAY_ACTIVATE_DINERS == 'true') {
+						$auswahl[] = 'DINERS';
+					}
+					if(XT_VREPAY_ACTIVATE_AMEX == 'true') {
+						$auswahl[] = 'AMEX';
+					}
+					if(XT_VREPAY_ACTIVATE_JCB == 'true') {
+						$auswahl[] = 'JCB';
+					}
+					if(count($auswahl) > 0) {
+						$post_data['AUSWAHL'] = 'J';					
+						$post_data['BRAND'] = implode(';', $auswahl);
+					} else {
+						$post_data['AUSWAHL'] = 'J';
+					}
+					break;
+					
+				default:
+					$post_data['AUSWAHL'] = 'J';					
+					break;				
+			}
+		}
+		
+		return $post_data;
+	}
+	
 	
 	
 	public function pspRedirect($order_data) {
+		global $order, $info, $xtLink;
+		$post_data = $this->get_post_data($data);
 		
+
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, (XT_VREPAY_SYSTEM == 'LIVE') ? $this->target_url_live : $this->target_url_test);
+		curl_setopt($ch, CURLOPT_USERPWD, XT_VREPAY_HAENDLERNR . ':' . XT_VREPAY_PASSWORT);
+		curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+		
+		curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post_data));
+		curl_setopt($ch, CURLOPT_POST, true);
+		curl_setopt($ch, CURLOPT_SSLVERSION, 3);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($ch, CURLOPT_HEADER, true);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+		// cURL execute request
+		$response = curl_exec($ch);
+
+		if ($response === false) {
+			// close cURL handler
+			curl_close($ch);
+
+			$info->_addInfoSession(ERROR_CHECK_VREPAY_SYSTEM_UNAVAILABLE);
+			$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
+			if(XT_VREPAY_CANCELED) {
+				$order->_updateOrderStatus(XT_VREPAY_CANCELED, 'Status:'.  curl_error($ch), false, false, 'payment');
+			}
+			unset($_SESSION['last_order_id']);
+			$xtLink->_redirect($tmp_link);				
+			
+		} else {
+			$headers = curl_getinfo($ch);
+			curl_close($ch);
+			parse_str(substr($response,  $headers['header_size']), $response_body);
+			$response_header = http_parse_headers(substr($response, 0,  $headers['header_size']));
+			switch ($headers['http_code']) {
+				//Keine Weiterleitung auf Dialog erfolgt
+				case '200':
+				default:
+
+					//Systemfehler
+					$info->_addInfoSession(utf8_encode($response_body['FEHLERTEXT']));
+					$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
+					if(XT_VREPAY_CANCELED) {
+						$order->_updateOrderStatus(XT_VREPAY_CANCELED, $response_body['FEHLERTEXT'], false, false, 'payment');
+					}
+					unset($_SESSION['last_order_id']);
+					$xtLink->_redirect($tmp_link);
+										
+					break;
+				case '302':
+					//Weiterleitung auf Dialog
+					return $response_header['LOCATION'];
+					break;
+			}
+		}
 	}
 	
 		
 	public function pspSuccess() {
+		global $info, $xtLink, $order, $store_handler;
+		
+		$currency = new currency($order->order_data['currency_code']);		
+		$betrag   = $order->order_total['total']['plain'] * pow(10, $currency->decimals);		
+		$referenz = substr(XT_VREPAY_ORDERPREFIX. $store_handler->shop_id . '-' .$order->oID, -20);
+		$callback_secret = md5($betrag.$referenz.XT_VREPAY_ANTWGEHEIMNIS);
+		
+		//prüfen, ob redirect redirect nicht manipuliert wurde. 
+		if($_GET['ANTWGEHEIMNIS'] != $callback_secret) {
+			$info->_addInfoSession('CALLBACK_SECRET INCORRECT');
+			if(XT_VREPAY_CANCELED) {
+				$order->_updateOrderStatus(XT_VREPAY_CANCELED, '', false, false, 'payment');
+			}
+			unset($_SESSION['last_order_id']);
+			 $xtLink->_redirect( $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL')));
+		}
+		
+		if($_GET['redirect'] == 'error') {
+			$info->_addInfoSession(ERROR_CHECK_VREPAY_SYSTEM_UNAVAILABLE);
+			if(XT_VREPAY_CANCELED) {
+				$order->_updateOrderStatus(XT_VREPAY_CANCELED, '', false, false, 'payment');
+			}
+			unset($_SESSION['last_order_id']);
+			 $xtLink->_redirect( $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL')));
+		}
+
+		if($_GET['redirect'] == 'userabort') {
+			
+			if(XT_VREPAY_CANCELED) {
+				$order->_updateOrderStatus(XT_VREPAY_CANCELED, 'Zahlung abgebrochen', false, false, 'payment');
+			}
+			unset($_SESSION['last_order_id']);
+			 $xtLink->_redirect( $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL')));
+		}
 		return true;
 	}
 	
@@ -403,7 +587,6 @@ class xt_vrepay {
 		
 		$application = new license_application( _SRV_WEBROOT . 'lic/xt_vrepay_license.txt',	false, true, true, false, true, true, array('VEYTON_LIC' => $GLOBALS['lic_parms']['key']['value']) );
 		$results 	= $application->validate();
-		//$application->make_secure();
 		
 		if($results['RESULT'] != 'OK') {
 			
@@ -415,4 +598,28 @@ class xt_vrepay {
 	
 }
 
+if(!function_exists('http_parse_headers')) {
+	// http_parse_headers: without PECL Library
+	function http_parse_headers($headers = false){
+
+		if($headers === false) {
+			return false;
+		}
+		// carriage return to nothing
+		$headers = str_replace("\r","",$headers);
+		// header divided by new line
+		$headers = explode("\n",$headers);
+
+		foreach($headers as $value) {
+			$header = explode(": ",$value);
+			if($header[0] && !$header[1]) {
+				$headerdata['STATUS'] = $header[0];
+			} elseif($header[0] && $header[1]) {
+				// uppercase for all keys
+				$headerdata[strtoupper($header[0])] = $header[1];
+			}
+		}
+		return $headerdata;
+	}
+}
 ?>

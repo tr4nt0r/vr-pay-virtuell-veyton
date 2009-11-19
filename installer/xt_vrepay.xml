@@ -80,7 +80,7 @@ $db->Execute("INSERT INTO ".TABLE_PAYMENT_COST." (`payment_id`, `payment_geo_zon
 				$result[] =  array('id' => 'DIREKT',
                              'name' => TEXT_VREPAY_SERVICE_DIREKT,
                              'desc' => '');				
-				$result[] =  array('id' => 'TEST',
+				$result[] =  array('id' => 'DIALOG',
                              'name' => TEXT_VREPAY_SERVICE_DIALOG,
                              'desc' => '');			
                 
@@ -115,7 +115,7 @@ $db->Execute("INSERT INTO ".TABLE_PAYMENT_COST." (`payment_id`, `payment_geo_zon
 <hook>module_checkout.php:checkout_pre_data</hook>
 <phpcode><![CDATA[
 
-  if($_SESSION['selected_payment']=='xt_vrepay'){
+  if($_SESSION['selected_payment']=='xt_vrepay' && XT_VREPAY_SERVICE != 'DIALOG'){
     if(is_data($_SESSION['xt_vrepay_data'])){
       $data = $_SESSION['xt_vrepay_data'];
 
@@ -141,7 +141,7 @@ $db->Execute("INSERT INTO ".TABLE_PAYMENT_COST." (`payment_id`, `payment_geo_zon
 <code>
 <hook>module_checkout.php:checkout_data</hook>
 <phpcode><![CDATA[
-if($_SESSION['selected_payment']=='xt_vrepay'){
+if($_SESSION['selected_payment']=='xt_vrepay' && XT_VREPAY_SERVICE != 'DIALOG'){
   if(is_data($_SESSION['xt_vrepay_data'])){
     $temp_data = $_SESSION['xt_vrepay_data'];
     $xt_vrepay_temp = new xt_vrepay;
@@ -167,7 +167,7 @@ if($_SESSION['selected_payment']=='xt_vrepay'){
 <hook>module_checkout.php:checkout_proccess_order_processed</hook>
 <phpcode><![CDATA[
 
-  if($_SESSION['selected_payment']=='xt_vrepay'){
+  if($_SESSION['selected_payment']=='xt_vrepay' && XT_VREPAY_SERVICE != 'DIALOG'){
     if(is_data($_SESSION['xt_vrepay_data'])){
       $payment_module_data->_vrepayProcessPayment($processed_data['orders_id'], $_SESSION['xt_vrepay_data']);
     }
@@ -223,7 +223,7 @@ if($_SESSION['selected_payment']=='xt_vrepay'){
 
 <config>
 <key>PASSWORT</key>
-<type>textfield</type>
+<type>password</type>
 <value>z1xPd8af</value>
 <sort_order>21</sort_order>
 <de>
@@ -260,6 +260,19 @@ if($_SESSION['selected_payment']=='xt_vrepay'){
 </de>
 <en>
 <title>Integration type</title>
+</en>
+</config>
+
+<config>
+<key>ANTWGEHEIMNIS</key>
+<type>password</type>
+<value></value>
+<sort_order>40</sort_order>
+<de>
+<title>Geheimwort f&amp;uuml;r Callback</title>
+</de>
+<en>
+<title>Secret for callback</title>
 </en>
 </config>
 
@@ -399,7 +412,40 @@ if($_SESSION['selected_payment']=='xt_vrepay'){
 </en>
 </config>
 
+
+
+<config>
+<key>CONTENT_AGB</key>
+<type>dropdown</type>
+<url>content_list</url>
+<sort_order>70</sort_order>
+<value>3</value>
+<de>
+<title>Content Seite f&amp;uuml; AGB des Shops</title>
+</de>
+<en>
+<title>Content page for conditions of the shop</title>
+</en>
+</config>
+
+<config>
+<key>CONTENT_CVC</key>
+<type>dropdown</type>
+<url>content_list</url>
+<sort_order>71</sort_order>
+<value></value>
+<de>
+<title>Content Seite f&amp;uuml; Hilfe zu CVC2/CAVV Sicherheitscode</title>
+</de>
+<en>
+<title>Content page for help on CVC2/CAVV securitycode</title>
+</en>
+</config>
+
+
+
 </configuration_payment>
+
 
 
 
@@ -569,6 +615,27 @@ if($_SESSION['selected_payment']=='xt_vrepay'){
 </de>
 <en>
 <value>The Paymentsystem is temporarily not available. Please choose an alternative payment method.</value>
+</en>
+</phrase>
+
+<phrase>
+<key>TEXT_PAYMENT_GIROPAY</key>
+<class>store</class>
+<de>
+<value>Giropay</value>
+</de>
+<en>
+<value>Giropay</value>
+</en>
+</phrase>
+<phrase>
+<key>TEXT_PAYMENT_ELV</key>
+<class>store</class>
+<de>
+<value>Lastschriftverfahren</value>
+</de>
+<en>
+<value>Direct debit transfer</value>
 </en>
 </phrase>
 
