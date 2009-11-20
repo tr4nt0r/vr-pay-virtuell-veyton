@@ -216,7 +216,7 @@ class xt_vrepay {
 	}
 	
 	/**
-	 * Zahlung verarbeiten
+	 * Direkt Zahlung verarbeiten
 	 * @param int $oID Orders ID
 	 * @param array $data payment_info
 	 * @param string $type cc or elv
@@ -281,14 +281,15 @@ class xt_vrepay {
 								}
 								unset($_SESSION['xt_vrepay_data']);
 								break;
-							case "GEKAUFT":
+							case 'GEKAUFT':
+							case 'RESERVIERT':
 									
 								if(XT_VREPAY_PROCESSED) {
 									$order->_updateOrderStatus(XT_VREPAY_PROCESSED, $response_body['STATUS'] . ': ' .$response_body['RMSG'], false, false, 'payment', $response_body['TSAID']);
 								}
 									unset($_SESSION['xt_vrepay_data']);
 								break;
-							case "ABGELEHNT":
+							case 'ABGELEHNT':
 								//Zahlung abgelehnt
 								$info->_addInfoSession(utf8_encode($response_body['RMSG']));
 								$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
@@ -338,6 +339,12 @@ class xt_vrepay {
 		}	
 	}
 	
+	/**
+	 * POST-Daten erzeugen
+	 * @param array $data
+	 * @param string $type cc or elv
+	 * @return array
+	 */
 	private function get_post_data(&$data, $type = 'cc') {
 		global $order, $store_handler, $xtLink;
 		
@@ -435,6 +442,7 @@ class xt_vrepay {
 				case 'GIROPAY':
 					$post_data['AUSWAHL'] = 'N';
 					$post_data['BRAND'] = 'GIROPAY';
+					$post_data['ZAHLART'] = 'KAUFEN';
 					break;
 				
 				case 'CC':
@@ -478,7 +486,11 @@ class xt_vrepay {
 	}
 	
 	
-	
+	/**
+	 * Dialog Zahlung verarbeiten
+	 * @param array $order_data
+	 * @return string
+	 */
 	public function pspRedirect($order_data) {
 		global $order, $info, $xtLink;
 		$post_data = $this->get_post_data($data);
@@ -541,7 +553,10 @@ class xt_vrepay {
 		}
 	}
 	
-		
+	/**
+	 * Rücksprung von Dialog verarbeiten
+	 * @return unknown_type
+	 */
 	public function pspSuccess() {
 		global $info, $xtLink, $order, $store_handler;
 		
@@ -550,7 +565,7 @@ class xt_vrepay {
 		$referenz = substr(XT_VREPAY_ORDERPREFIX. $store_handler->shop_id . '-' .$order->oID, -20);
 		$callback_secret = md5($betrag.$referenz.XT_VREPAY_ANTWGEHEIMNIS);
 		
-		//prüfen, ob redirect redirect nicht manipuliert wurde. 
+		//prüfen, ob redirect nicht manipuliert wurde. 
 		if($_GET['ANTWGEHEIMNIS'] != $callback_secret) {
 			$info->_addInfoSession('CALLBACK_SECRET INCORRECT');
 			if(XT_VREPAY_CANCELED) {
