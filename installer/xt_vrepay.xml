@@ -323,13 +323,68 @@ if($_SESSION['selected_payment']=='xt_vrepay' && XT_VREPAY_SERVICE != 'DIALOG'){
 <sort_order>41</sort_order>
 <required>false</required>
 <de>
-<title>Bestellstatus  - Abgelehnt</title>
+<title>Bestellstatus  - Abgebrochen</title>
 </de>
 <en>
 <title>Ordersstatus - Canceled</title>
 </en>
 </config>
 
+<config>
+<key>DENIED</key>
+<type>dropdown</type>
+<url>status:order_status</url>
+<sort_order>41</sort_order>
+<required>false</required>
+<de>
+<title>Bestellstatus  - Abgelehnt</title>
+</de>
+<en>
+<title>Ordersstatus - Denied</title>
+</en>
+</config>
+
+<config>
+<key>PENDING</key>
+<type>dropdown</type>
+<url>status:order_status</url>
+<sort_order>41</sort_order>
+<required>false</required>
+<de>
+<title>Bestellstatus  - In Bearbeitung</title>
+</de>
+<en>
+<title>Ordersstatus - Pending</title>
+</en>
+</config>
+<config>
+<key>FAILED</key>
+<type>dropdown</type>
+<url>status:order_status</url>
+<sort_order>41</sort_order>
+<required>false</required>
+<de>
+<title>Bestellstatus  - Fehlgeschlagen</title>
+</de>
+<en>
+<title>Ordersstatus - Failed</title>
+</en>
+</config>
+
+
+<config>
+<key>STATUS_NOTIFY</key>
+<type>dropdown</type>
+<value>true</value>
+<url>conf_truefalse</url>
+<sort_order>50</sort_order>
+<de>
+<title>Statusmail senden</title>
+</de>
+<en>
+<title>Send statusmail</title>
+</en>
+</config>
 
 
 <config>
@@ -405,10 +460,10 @@ if($_SESSION['selected_payment']=='xt_vrepay' && XT_VREPAY_SERVICE != 'DIALOG'){
 <url>conf_truefalse</url>
 <sort_order>55</sort_order>
 <de>
-<title>Lastschrift aktivieren (ben&amp;ouml;tigt xt_banktransfer)</title>
+<title>Lastschrift aktivieren (DIREKT ben&amp;ouml;tigt xt_banktransfer)</title>
 </de>
 <en>
-<title>Activate Direct debit transfer (requires xt_banktransfer)</title>
+<title>Activate Direct debit transfer (DIREKT requires xt_banktransfer)</title>
 </en>
 </config>
 

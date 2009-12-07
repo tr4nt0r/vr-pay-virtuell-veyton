@@ -293,8 +293,8 @@ class xt_vrepay {
 								//Zahlung abgelehnt
 								$info->_addInfoSession(utf8_encode($response_body['RMSG']));
 								$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
-								if(XT_VREPAY_CANCELED) {
-									$order->_updateOrderStatus(XT_VREPAY_CANCELED, $response_body['STATUS'] . ': ' .$response_body['RMSG'], false, false, 'payment');
+								if(XT_VREPAY_DENIED) {
+									$order->_updateOrderStatus(XT_VREPAY_DENIED, $response_body['STATUS'] . ': ' .$response_body['RMSG'], false, false, 'payment');
 								}
 								unset($_SESSION['last_order_id']);
 								$xtLink->_redirect($tmp_link);
@@ -304,8 +304,8 @@ class xt_vrepay {
 								//Systemfehler
 								$info->_addInfoSession(ERROR_CHECK_VREPAY_SYSTEM_UNAVAILABLE);
 								$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
-								if(XT_VREPAY_CANCELED) {
-									$order->_updateOrderStatus(XT_VREPAY_CANCELED, $response_body['STATUS'] . ' ' . $response_body['RMSG'], false, false, 'payment');
+								if(XT_VREPAY_FAILED) {
+									$order->_updateOrderStatus(XT_VREPAY_FAILED, $response_body['STATUS'] . ' ' . $response_body['RMSG'], false, false, 'payment');
 								}
 								unset($_SESSION['last_order_id']);
 								$xtLink->_redirect($tmp_link);
@@ -316,8 +316,8 @@ class xt_vrepay {
 						//Systemfehler
 						$info->_addInfoSession(utf8_encode($response_body['FEHLERTEXT']));
 						$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
-						if(XT_VREPAY_CANCELED) {
-							$order->_updateOrderStatus(XT_VREPAY_CANCELED, $response_body['FEHLERTEXT'], false, false, 'payment');
+						if(XT_VREPAY_FAILED) {
+							$order->_updateOrderStatus(XT_VREPAY_FAILED, $response_body['FEHLERTEXT'], false, false, 'payment');
 						}
 						unset($_SESSION['last_order_id']);
 						$xtLink->_redirect($tmp_link);
@@ -329,8 +329,8 @@ class xt_vrepay {
 					
 					$info->_addInfoSession(ERROR_CHECK_VREPAY_SYSTEM_UNAVAILABLE);
 					$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
-					if(XT_VREPAY_CANCELED) {
-								$order->_updateOrderStatus(XT_VREPAY_CANCELED, 'http-code ['. $headers['http_code'].']' , false, false, 'payment');
+					if(XT_VREPAY_FAILED) {
+								$order->_updateOrderStatus(XT_VREPAY_FAILED, 'http-code ['. $headers['http_code'].']' , false, false, 'payment');
 							}
 					unset($_SESSION['last_order_id']);
 					$xtLink->_redirect($tmp_link);
@@ -346,7 +346,7 @@ class xt_vrepay {
 	 * @return array
 	 */
 	private function get_post_data(&$data, $type = 'cc') {
-		global $order, $store_handler, $xtLink;
+		global $order, $xtLink;
 		
 		$xtLink->amp = '&';
 		$post_data = array();
@@ -356,7 +356,8 @@ class xt_vrepay {
 		$post_data['TSATYP']		= 'ECOM';
 		
 		//Bestelldaten
-		$post_data['REFERENZNR']	= substr(XT_VREPAY_ORDERPREFIX. $store_handler->shop_id . '-' .$order->oID, -20);
+		$post_data['REFERENZNR']	= XT_VREPAY_ORDERPREFIX . $order->oID;
+		
 		$currency = new currency($order->order_data['currency_code']);		
 		$post_data['BETRAG']			= $order->order_total['total']['plain'] * pow(10, $currency->decimals);		
 		$post_data['WAEHRUNG']		= $order->order_data['currency_code'];
@@ -402,7 +403,7 @@ class xt_vrepay {
 			$post_data['VERWENDANZ'] = 1;	
 		}
 		
-		$callback_secret = md5($post_data['BETRAG'].$post_data['REFERENZNR'].XT_VREPAY_ANTWGEHEIMNIS);
+		$callback_secret = strtoupper(md5($post_data['BETRAG'].$post_data['REFERENZNR'].XT_VREPAY_ANTWGEHEIMNIS));
 			
 		$post_data['ANTWGEHEIMNIS']	= $callback_secret;
 		
@@ -425,8 +426,8 @@ class xt_vrepay {
 			
 			$post_data['URLERFOLG'] = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment_process', 'params' => '&ANTWGEHEIMNIS='.$callback_secret, 'conn'=>'SSL'));
 			
-			$post_data['URLFEHLER'] = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment_process', 'params' => 'redirect=error&ANTWGEHEIMNIS='.$callback_secret, 'conn'=>'SSL'));
-			$post_data['URLABBRUCH'] = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment_process', 'params' => 'redirect=userabort&ANTWGEHEIMNIS='.$callback_secret, 'conn'=>'SSL'));
+			$post_data['URLFEHLER'] = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment_process', 'params' => 'redirect=error', 'conn'=>'SSL'));
+			$post_data['URLABBRUCH'] = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment_process', 'params' => 'redirect=userabort', 'conn'=>'SSL'));
 			$post_data['URLANTWORT'] = $xtLink->_link(array('page'=>'callback', 'paction'=>'xt_vrepay', 'conn'=>'SSL'));;
 			//		
 			$post_data['BENACHRPROF']	= "ALL";
@@ -519,8 +520,8 @@ class xt_vrepay {
 
 			$info->_addInfoSession(ERROR_CHECK_VREPAY_SYSTEM_UNAVAILABLE);
 			$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
-			if(XT_VREPAY_CANCELED) {
-				$order->_updateOrderStatus(XT_VREPAY_CANCELED, 'Status:'.  curl_error($ch), false, false, 'payment');
+			if(XT_VREPAY_FAILED) {
+				$order->_updateOrderStatus(XT_VREPAY_FAILED, 'Status:'.  curl_error($ch), false, false, 'payment');
 			}
 			unset($_SESSION['last_order_id']);
 			$xtLink->_redirect($tmp_link);				
@@ -538,8 +539,8 @@ class xt_vrepay {
 					//Systemfehler
 					$info->_addInfoSession(utf8_encode($response_body['FEHLERTEXT']));
 					$tmp_link  = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL'));
-					if(XT_VREPAY_CANCELED) {
-						$order->_updateOrderStatus(XT_VREPAY_CANCELED, $response_body['FEHLERTEXT'], false, false, 'payment');
+					if(XT_VREPAY_FAILED) {
+						$order->_updateOrderStatus(XT_VREPAY_FAILED, $response_body['FEHLERTEXT'], false, false, 'payment');
 					}
 					unset($_SESSION['last_order_id']);
 					$xtLink->_redirect($tmp_link);
@@ -558,27 +559,12 @@ class xt_vrepay {
 	 * @return unknown_type
 	 */
 	public function pspSuccess() {
-		global $info, $xtLink, $order, $store_handler;
-		
-		$currency = new currency($order->order_data['currency_code']);		
-		$betrag   = $order->order_total['total']['plain'] * pow(10, $currency->decimals);		
-		$referenz = substr(XT_VREPAY_ORDERPREFIX. $store_handler->shop_id . '-' .$order->oID, -20);
-		$callback_secret = md5($betrag.$referenz.XT_VREPAY_ANTWGEHEIMNIS);
-		
-		//prüfen, ob redirect nicht manipuliert wurde. 
-		if($_GET['ANTWGEHEIMNIS'] != $callback_secret) {
-			$info->_addInfoSession('CALLBACK_SECRET INCORRECT');
-			if(XT_VREPAY_CANCELED) {
-				$order->_updateOrderStatus(XT_VREPAY_CANCELED, '', false, false, 'payment');
-			}
-			unset($_SESSION['last_order_id']);
-			 $xtLink->_redirect( $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL')));
-		}
-		
+		global $info, $xtLink, $order;
+
 		if($_GET['redirect'] == 'error') {
 			$info->_addInfoSession(ERROR_CHECK_VREPAY_SYSTEM_UNAVAILABLE);
-			if(XT_VREPAY_CANCELED) {
-				$order->_updateOrderStatus(XT_VREPAY_CANCELED, '', false, false, 'payment');
+			if(XT_VREPAY_FAILED) {
+				$order->_updateOrderStatus(XT_VREPAY_FAILED, '', false, false, 'payment');
 			}
 			unset($_SESSION['last_order_id']);
 			 $xtLink->_redirect( $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment', 'conn'=>'SSL')));
