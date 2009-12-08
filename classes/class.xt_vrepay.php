@@ -424,7 +424,7 @@ class xt_vrepay {
 				}
 			}
 			
-			$post_data['URLERFOLG'] = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment_process', 'params' => '&ANTWGEHEIMNIS='.$callback_secret, 'conn'=>'SSL'));
+			$post_data['URLERFOLG'] = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment_process', 'conn'=>'SSL'));
 			
 			$post_data['URLFEHLER'] = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment_process', 'params' => 'redirect=error', 'conn'=>'SSL'));
 			$post_data['URLABBRUCH'] = $xtLink->_link(array('page'=>'checkout', 'paction'=>'payment_process', 'params' => 'redirect=userabort', 'conn'=>'SSL'));
