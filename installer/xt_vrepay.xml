@@ -467,6 +467,20 @@ if($_SESSION['selected_payment']=='xt_vrepay' && XT_VREPAY_SERVICE != 'DIALOG'){
 </en>
 </config>
 
+<config>
+<key>ACTIVATE_GIRO</key>
+<type>dropdown</type>
+<value>true</value>
+<url>conf_truefalse</url>
+<sort_order>55</sort_order>
+<de>
+<title>Giropay aktivieren (Nur bei Variante DIALOG)</title>
+</de>
+<en>
+<title>Activate Giropay (DIALOG only)</title>
+</en>
+</config>
+
 
 
 <config>

@@ -12,8 +12,7 @@
 {/php}
 
 
-<table class="paymentblock" width="100%" border="0" cellspacing="0"
-	cellpadding="6">
+<table class="paymentblock" width="100%" border="0" cellspacing="0"	cellpadding="6">
 	<tr>
 		{if $smarty.const.XT_VREPAY_SERVICE == 'DIALOG'}
 				<td class="header" width="10px">{form type=radio name=selected_payment value=$payment_code:CC}</td>
@@ -50,14 +49,11 @@
 	</tr>
 	<tr>
 		<td class="main" colspan="4">
-		{if $smarty.const.XT_VREPAY_SERVICE ==	'DIALOG'}
-
-		{else}
+		{if $smarty.const.XT_VREPAY_SERVICE !=	'DIALOG'}
 		<table border="0" cellspacing="0" cellpadding="6">
 			<tr>
 				<td class="main">{txt key=TEXT_VREPAY_CCOWNER}</td>
-				<td class="main">{form type=text name=vr_ccowner
-				value=$vr_ccowner}</td>
+				<td class="main">{form type=text name=vr_ccowner value=$vr_ccowner}</td>
 			</tr>
 
 			<tr>
@@ -81,10 +77,9 @@
 	</tr>
 </table>
 <br />
-
 {if $smarty.const.XT_VREPAY_SERVICE == 'DIALOG'}
-<table class="paymentblock" width="100%" border="0" cellspacing="0"
-	cellpadding="6">
+{if $smarty.const.XT_VREPAY_ACTIVATE_ELV == 'true'}
+<table class="paymentblock" width="100%" border="0" cellspacing="0"	cellpadding="6">
 	<tr>
 		
 		<td class="header" width="10px">
@@ -101,13 +96,14 @@
 	</tr>
 	<tr>
 		<td colspan="4" class="main">
-		{if	$smarty.const.XT_VREPAY_ACTIVATE_ELV == 'true'}{img img=ELV.gif	type=p plg=xt_vrepay class=productImageBorder}{/if}	 		
+		{img img=ELV.gif type=p plg=xt_vrepay class=productImageBorder}	 		
 		</td>
 	</tr>
 </table>
 <br />
-<table class="paymentblock" width="100%" border="0" cellspacing="0"
-	cellpadding="6">
+{/if}
+{if	$smarty.const.XT_VREPAY_ACTIVATE_GIRO == 'true'}
+<table class="paymentblock" width="100%" border="0" cellspacing="0"	cellpadding="6">
 	<tr>
 		
 		<td class="header" width="10px">
@@ -124,9 +120,10 @@
 	</tr>
 	<tr>
 		<td colspan="4" class="main">
-		{if	$smarty.const.XT_VREPAY_ACTIVATE_GIRO != 'true'}{img img=GIROPAY.gif	type=p plg=xt_vrepay class=productImageBorder}{/if}		 		
+		{img img=GIROPAY.gif type=p plg=xt_vrepay class=productImageBorder}	 		
 		</td>
 	</tr>
 </table>
 <br />
+{/if}
 {/if}
