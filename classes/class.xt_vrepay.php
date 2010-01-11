@@ -358,8 +358,18 @@ class xt_vrepay {
 		//Bestelldaten
 		$post_data['REFERENZNR']	= XT_VREPAY_ORDERPREFIX . $order->oID;
 		
-		$currency = new currency($order->order_data['currency_code']);		
-		$post_data['BETRAG']			= $order->order_total['total']['plain'] * pow(10, $currency->decimals);		
+		$currency = new currency($order->order_data['currency_code']);	
+		if (XT_VREPAY_SYSTEM == 'TEST') {
+			if ($order->order_total['total']['plain'] < 1) {
+				$order->order_total['total']['plain'] = 1;
+			} elseif ($order->order_total['total']['plain'] > 9) {
+				$order->order_total['total']['plain'] = 9;
+			} else {
+				$order->order_total['total']['plain'] = round($order->order_total['total']['plain']);
+			}
+		}
+		$post_data['BETRAG']			= $order->order_total['total']['plain'] * pow(10, $currency->decimals);
+		 		
 		$post_data['WAEHRUNG']		= $order->order_data['currency_code'];
 		$post_data['INFOTEXT']		= '';
 		$post_data['ARTIKELANZ']	= count($order->order_products);
