@@ -512,7 +512,7 @@ class xt_vrepay {
 		curl_setopt($ch, CURLOPT_USERPWD, XT_VREPAY_HAENDLERNR . ':' . XT_VREPAY_PASSWORT);
 		curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 		
-		curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post_data));
+		curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post_data, '', '&'));
 		curl_setopt($ch, CURLOPT_POST, true);
 		curl_setopt($ch, CURLOPT_SSLVERSION, 3);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
